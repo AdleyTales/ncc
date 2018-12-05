@@ -97,6 +97,13 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
             loader: __dirname + "/loaders/node-loader.js",
             options: { assetNames, assets }
           }]
+        },
+        {
+          test: /\.(js|mjs)$/,
+          use: [{
+            loader: __dirname + "/loaders/terser-loader.js",
+            options: { sourceMap }
+          }]
         }
       ]
     },
@@ -162,30 +169,6 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
       });
     });
   })
-  .then(({ code, map, assets }) => {
-    if (!minify)
-      return { code, map, assets };
-    const result = terser.minify(code, {
-      compress: {
-        keep_classnames: true,
-        keep_fnames: true
-      },
-      mangle: {
-        keep_classnames: true,
-        keep_fnames: true
-      },
-      sourceMap: sourceMap ? {
-        content: map,
-        filename,
-        url: filename + ".map"
-      } : false
-    });
-    // For some reason, auth0 returns "undefined"!
-    // custom terser phase used over Webpack integration for this reason
-    if (result.code === undefined)
-      return { code, map, assets };
-    return { code: result.code, map: result.map, assets };
-  })
   .then(({ code, map, assets}) => {
     if (!shebangMatch)
       return { code, map, assets };
@@ -194,7 +177,7 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
     if (map)
       map.mappings = ";" + map.mappings;
     return { code, map, assets };
-  })
+  });
 };
 
 // this could be rewritten with actual FS apis / globs, but this is simpler
