@@ -98,13 +98,13 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
             options: { assetNames, assets }
           }]
         },
-        {
+        ...minify ? [{
           test: /\.(js|mjs)$/,
           use: [{
             loader: __dirname + "/loaders/terser-loader.js",
             options: { sourceMap }
           }]
-        }
+        }] : []
       ]
     },
     plugins: [
