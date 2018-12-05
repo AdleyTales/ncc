@@ -45,10 +45,15 @@ function resolveModule(context, request, callback, forcedExternals = []) {
   });
 }
 
-module.exports = async (entry, { externals = [], minify = false, sourceMap = false, filename = "index.js" } = {}) => {
+module.exports = async (entry, { externals = [], minify = false, sourceMap = false, filename = "index.js", v8cache = false } = {}) => {
   const shebangMatch = fs.readFileSync(resolve.sync(entry)).toString().match(shebangRegEx);
   const mfs = new MemoryFS();
   const assetNames = Object.create(null);
+  assetNames[filename] = true;
+  if (sourceMap)
+    assetNames[filename + '.map'] = true;
+  if (v8cache)
+    assetNames[filename + '.cache'] = assetNames[filename + '.cache.js'] = true;
   const assets = Object.create(null);
   const compiler = webpack({
     entry,
@@ -186,12 +191,25 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
       return { code, map, assets };
     return { code: result.code, map: result.map, assets };
   })
+  .then(({ code, map, assets }) => {
+    if (!v8cache)
+      return { code, map, assets };
+    const { Script } = require('vm');
+    assets[filename + '.cache'] = new Script(code).createCachedData();
+    assets[filename + '.cache.js'] = code;
+    assets[filename + '.map'] = map;
+    code = `const { readFileSync } = require('fs'), { Script } = require('vm');\n` +
+        `const source = readFileSync(__dirname + '/${filename}.cache.js').toString(), cachedData = readFileSync(__dirname + '/${filename}.cache');\n` +
+        `new Script(source, { cachedData }).runInNewContext(Object.assign({}, global, { module, exports, require, __filename, __dirname }));\n`;
+    if (map) map = {};
+    return { code, map, assets };
+  })
   .then(({ code, map, assets}) => {
     if (!shebangMatch)
       return { code, map, assets };
     code = shebangMatch[0] + code;
     // add a line offset to the sourcemap
-    if (map)
+    if (map && map.mappings)
       map.mappings = ";" + map.mappings;
     return { code, map, assets };
   })

@@ -16,6 +16,7 @@ Options:
   -S, --no-source-map   Skip source map output
   -e, --external [mod]  Skip bundling 'mod'. Can be used many times
   -q, --quiet           Disable build summaries / non-error outputs
+  --v8-cache            Emit a build using the v8 compile cache
 `;
 
 let args;
@@ -30,7 +31,8 @@ try {
     "--no-source-map": Boolean,
     "-S": "--no-source-map",
     "--quiet": Boolean,
-    "-q": "--quiet"
+    "-q": "--quiet",
+    "--v8-cache": Boolean
   });
 } catch (e) {
   if (e.message.indexOf("Unknown or unexpected option") === -1) throw e;
@@ -123,7 +125,8 @@ switch (args._[0]) {
       {
         minify: !args["--no-minify"] && !run,
         externals: args["--external"],
-        sourceMap: !args["--no-source-map"]
+        sourceMap: !args["--no-source-map"],
+        v8cache: args["--v8-cache"]
       }
     );
     ncc.then(
