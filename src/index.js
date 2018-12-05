@@ -86,7 +86,10 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
         },
         {
           test: /\.(js|mjs)$/,
-          use: [{
+          use: [...minify ? [{
+            loader: __dirname + "/loaders/terser-loader.js",
+            options: { sourceMap }
+          }] : [], {
             loader: __dirname + "/loaders/relocate-loader.js",
             options: { assetNames, assets }
           }]
@@ -97,14 +100,7 @@ module.exports = async (entry, { externals = [], minify = false, sourceMap = fal
             loader: __dirname + "/loaders/node-loader.js",
             options: { assetNames, assets }
           }]
-        },
-        ...minify ? [{
-          test: /\.(js|mjs)$/,
-          use: [{
-            loader: __dirname + "/loaders/terser-loader.js",
-            options: { sourceMap }
-          }]
-        }] : []
+        }
       ]
     },
     plugins: [
